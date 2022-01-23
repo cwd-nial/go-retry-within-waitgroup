@@ -7,37 +7,31 @@ import (
 	"time"
 )
 
-type call struct {
-	Duration   time.Duration
-	StatusCode int
-}
-
 func main() {
-	calls := map[string]call{
-		"A": {
-			Duration:   time.Second * 1,
-			StatusCode: 503,
-		},
-		"B": {
-			Duration:   time.Second * 2,
-			StatusCode: 503,
-		},
-		"C": {
-			Duration:   time.Second * 4,
-			StatusCode: 503,
-		},
-	}
-
+	// start the waitgroup
 	fmt.Println("Starting waitgroup")
 	wg := sync.WaitGroup{}
 
-	for k, v := range calls {
-		wg.Add(1)
-		go someApiCall(k, v.StatusCode, v.Duration, &wg)
-	}
+	// declare and start a ticker in a background process
+	ticker := time.NewTicker(1 * time.Second)
+	go func() {
+		for range ticker.C {
+			fmt.Println("tock")
+		}
+	}()
+
+	wg.Add(1)
+	go someApiCall("A", 503, time.Second*1, &wg)
+
+	wg.Add(1)
+	go someApiCall("B", 503, time.Second*2, &wg)
+
+	wg.Add(1)
+	go someApiCall("C", 503, time.Second*4, &wg)
 
 	// wait until completion or first occurring error
 	wg.Wait()
+	defer ticker.Stop()
 }
 
 func someApiCall(name string, statusCode int, d time.Duration, wg *sync.WaitGroup) http.Response {
